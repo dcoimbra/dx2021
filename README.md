@@ -59,5 +59,4 @@ Path-contexts will be extracted into the `code2vec` folder, into the files `devi
  ```
 
 ## Acknowledgements
-This work was supported in part by Fundação para a Cienciae a Tecnologia (FCT) under Grants CMU/TIC/0064/2019 (aproject funded by the Carnegie Mellon Portugal Program)and UIDB/50021/2020.
-
+This work was supported in part by Fundação para a Ciencia e a Tecnologia (FCT) under Grants CMU/TIC/0064/2019 (a project funded by the Carnegie Mellon Portugal Program) and UIDB/50021/2020.
