@@ -29,7 +29,9 @@ fun code2vecCMethods(split: String) {
         fileNode.preOrder().forEach { it.setNormalizedToken(separateToken(it.getToken())) }
 
         val paths = miner.retrievePaths(fileNode)
-        if (paths.isEmpty()) return@forEachLine
+        
+        if (split == "train" && paths.isEmpty()) return@forEachLine
+
         var label = "safe"
         if (sample.target == "1") {
             label = "vuln"

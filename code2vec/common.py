@@ -135,7 +135,7 @@ class common:
         return str.split('|')
 
     @staticmethod
-    def parse_prediction_results(raw_prediction_results, unhash_dict, special_words, topk: int = 5) -> List['MethodPredictionResults']:
+    def parse_prediction_results(raw_prediction_results, special_words, topk: int = 5) -> List['MethodPredictionResults']:
         prediction_results = []
         for single_method_prediction in raw_prediction_results:
             current_method_prediction_results = MethodPredictionResults(single_method_prediction.original_name)
@@ -150,12 +150,7 @@ class common:
                 for key in sorted(single_method_prediction.attention_per_context,
                                   key=single_method_prediction.attention_per_context.get, reverse=True)
             ][:topk]
-            for context, attention in topk_attention_per_context:
-                token1, hashed_path, token2 = context
-                if hashed_path in unhash_dict:
-                    unhashed_path = unhash_dict[hashed_path]
-                    current_method_prediction_results.append_attention_path(attention.item(), token1=token1,
-                                                                            path=unhashed_path, token2=token2)
+            
             prediction_results.append(current_method_prediction_results)
         return prediction_results
 
