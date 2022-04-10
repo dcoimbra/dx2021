@@ -468,20 +468,30 @@ class SubtokensEvaluationMetric:
         self.filter_impossible_names_fn = filter_impossible_names_fn
 
     def update_batch(self, results):
-        negative = 'safe'
+        # negative = 'safe'
+        # for original_name, top_words in results:
+        #     prediction = self.filter_impossible_names_fn(top_words)[0]
+        #     if original_name != negative:
+        #         self.positive += 1
+        #         # print('original_label=', original_name, 'top_words=', top_words, 'prediction=', prediction)
+        #     if original_name == negative and prediction == negative:
+        #         self.nr_true_negatives += 1
+        #     elif original_name == negative and prediction != negative:
+        #         self.nr_false_positives += 1
+        #     elif original_name != negative and prediction != negative:
+        #         self.nr_true_positives += 1
+        #     elif original_name != negative and prediction == negative:
+        #         self.nr_false_negatives += 1
         for original_name, top_words in results:
             prediction = self.filter_impossible_names_fn(top_words)[0]
-            if original_name != negative:
-                self.positive += 1
-                # print('original_label=', original_name, 'top_words=', top_words, 'prediction=', prediction)
-            if original_name == negative and prediction == negative:
-                self.nr_true_negatives += 1
-            elif original_name == negative and prediction != negative:
-                self.nr_false_positives += 1
-            elif original_name != negative and prediction != negative:
-                self.nr_true_positives += 1
-            elif original_name != negative and prediction == negative:
-                self.nr_false_negatives += 1
+            original_subtokens = Counter(common.get_subtokens(original_name))
+            predicted_subtokens = Counter(common.get_subtokens(prediction))
+            self.nr_true_positives += sum(count for element, count in predicted_subtokens.items()
+                                          if element in original_subtokens)
+            self.nr_false_positives += sum(count for element, count in predicted_subtokens.items()
+                                           if element not in original_subtokens)
+            self.nr_false_negatives += sum(count for element, count in original_subtokens.items()
+                                           if element not in predicted_subtokens)
             self.nr_predictions += 1
 
         # self.log(f"TESTING DATASET SIZE={self.nr_predictions}, POSITIVE/UNSAFE CASES={self.positive} , #FNs={self.nr_false_negatives}, #FPs={self.nr_false_positives}, #TPs={self.nr_true_positives}, #TNs={self.nr_true_negatives}")

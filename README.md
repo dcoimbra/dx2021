@@ -67,3 +67,39 @@ Path-contexts will be extracted into the `code2vec` folder, into the files `devi
 
 ## Acknowledgements
 This work was supported in part by Fundação para a Ciencia e a Tecnologia (FCT) under Grants CMU/TIC/0064/2019 (a project funded by the Carnegie Mellon Portugal Program) and UIDB/50021/2020.
+
+# Moshe's changes
+I've found this project to be a great starting point for experiments with code2vec and cpp. It had astminer and code2vec workign together with cpp.
+In addition, it made some optimizations to keep the memory footprint lower than the original code2vec.
+
+However, the way it is done is completely hardcoded. The code is built to do one thing: process jsonl files {train, test, valid}.jsonl expecting to see C/C++ functions from devign dataset laleled as either safe or vuln; then run astminer on these specififc files; then run code2vec expecting to get the information in the exact files named devign.{train, test, valid}.raw.txt and store the model in models/devign. The scoring was also hardcoded to be binary classification. Lastly, the prediction_outputter.py was hardcoded to the devign JSONL fields.
+
+Our goal is to train the model with multiple classes and other datasets, as well as evaluating it on other data, not devign.
+This original commit has the minimal changes required to achieve that.
+
+As of now, the {train, test, valid}.jsonl contain funcions from FFMpeg, openssl, and vlc instead of the original ones.
+
+So, follow all the steps above.
+In order to evaluate on additional dataset (e.g. wolf) do the following:
+1. Clone the code from GitHub (e.g. to /mnt/d/GitHub_Clones/scripts/C_Dataset/test)
+2. Run cpp2jsonl.py to extract the functions:
+```sh
+  python ./cpp2jsonl.py -l /mnt/d/GitHub_Clones/scripts/C_Dataset/test -jl wolf.jsonl
+  cp ./wolf.jsonl ~/dx2021/astminer/dataset/
+```
+3. Extract the contexts for the test set using astminer's cli.sh
+```sh
+  cd ../astminer/
+  ./cli.sh wolf
+```
+4. In the code2vec/prediction_outputter.py change the SET_NAME to the name of your dataset
+```python
+  SET_NAME = "wolf"
+```
+5. Get the predictions by running prediction_outputter.py with the model of your choice
+```sh
+  python prediction_outputter.py --load models/devign/saved_model_iter6.release
+```
+
+I know that the hardcoding sucks and will change it, but I want first to save a working state
+

@@ -11,7 +11,8 @@ import astminer.paths.*
 import com.google.gson.Gson
 import java.io.File
 
-data class Sample (val project: String, val commit_id: String, val target: String, val func: String, val idx: String)
+// data class Sample (val project: String, val commit_id: String, val target: String, val func: String, val idx: String)
+data class Sample (val project: String, val file: String, val func: String)
 
 //Retrieve paths from all JavaScript files, using an Antlr parser.
 //JavaScriptMethodSplitter is used to extract individual method nodes from the compilation unit tree.
@@ -32,10 +33,11 @@ fun code2vecCMethods(split: String) {
         
         if (split == "train" && paths.isEmpty()) return@forEachLine
 
-        var label = "safe"
-        if (sample.target == "1") {
-            label = "vuln"
-        }
+        // var label = "safe"
+        // if (sample.target == "1") {
+        //     label = "vuln"
+        // }
+        var label = sample.project
         storage.store(
             LabeledPathContexts(
                 label,

@@ -1,6 +1,7 @@
-context_paths = "devign.test.raw.txt"
-json_file = "../astminer/dataset/test.jsonl"
-predictions_file = "predictions_test.txt"
+SET_NAME = "wolf" # "test"
+context_paths = "devign.%s.raw.txt"%SET_NAME
+json_file = "../astminer/dataset/%s.jsonl"%SET_NAME
+predictions_file = "predictions_%s.txt"%SET_NAME
 
 from interactive_predict import SHOW_TOP_CONTEXTS
 from common import common
@@ -18,6 +19,7 @@ dicti = {
 with open(json_file) as sample_file, open(context_paths) as contexts_file, open(predictions_file, "w") as predictions:
     for sample, function in zip(sample_file, contexts_file):
         sample = json.loads(sample.strip())
+        predictions.write(f"\n===================:\n{sample['project']}\n{sample['func'][:200]}\n===================:\n")
         parts = function.rstrip().split(' ')
         method_name = parts[0]
         current_result_line_parts = [method_name]
@@ -35,5 +37,10 @@ with open(json_file) as sample_file, open(context_paths) as contexts_file, open(
         method_prediction_results = common.parse_prediction_results(
                 raw_prediction_results,
                 model.vocabs.target_vocab.special_words, topk=SHOW_TOP_CONTEXTS)
+        # for raw_prediction, method_prediction in zip(raw_prediction_results, method_prediction_results):
+        #     predictions.write(f"{sample['idx']}\t{dicti[method_prediction.predictions[0]['name'][0]]}\n")
         for raw_prediction, method_prediction in zip(raw_prediction_results, method_prediction_results):
-            predictions.write(f"{sample['idx']}\t{dicti[method_prediction.predictions[0]['name'][0]]}\n")
+            # predictions.write(f"{sample['idx']}\t{dicti[method_prediction.predictions[0]['name'][0]]}\n")
+            # Raw predictions contain attentions for different contexts
+            # predictions.write(f"{sample['project']}\t{sample['func'][:40]}\tRaw:{raw_prediction}\tMethod:{method_prediction.predictions}\n")
+            predictions.write(f"{method_prediction.predictions}\n")
