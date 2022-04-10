@@ -1,4 +1,4 @@
-SET_NAME = "wolf" # "test"
+SET_NAME = "train" # "test"
 context_paths = "devign.%s.raw.txt"%SET_NAME
 json_file = "../astminer/dataset/%s.jsonl"%SET_NAME
 predictions_file = "predictions_%s.txt"%SET_NAME
@@ -8,7 +8,13 @@ from common import common
 from code2vec import load_model_dynamically
 from config import Config
 import json
+import numpy as np
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
+import seaborn as sns; sns.set()
+
 config = Config(set_defaults=True, load_from_args=True, verify=True)
+config.EXPORT_CODE_VECTORS = True
 model = load_model_dynamically(config)
 
 dicti = {
@@ -16,9 +22,13 @@ dicti = {
     "vuln": 1
 }
 
+code_vectors = []
+labels = []
+
 with open(json_file) as sample_file, open(context_paths) as contexts_file, open(predictions_file, "w") as predictions:
     for sample, function in zip(sample_file, contexts_file):
         sample = json.loads(sample.strip())
+
         predictions.write(f"\n===================:\n{sample['project']}\n{sample['func'][:200]}\n===================:\n")
         parts = function.rstrip().split(' ')
         method_name = parts[0]
@@ -44,3 +54,27 @@ with open(json_file) as sample_file, open(context_paths) as contexts_file, open(
             # Raw predictions contain attentions for different contexts
             # predictions.write(f"{sample['project']}\t{sample['func'][:40]}\tRaw:{raw_prediction}\tMethod:{method_prediction.predictions}\n")
             predictions.write(f"{method_prediction.predictions}\n")
+            predictions.write(' '.join(map(str, raw_prediction.code_vector)) + '\n')
+            code_vectors.append(raw_prediction.code_vector)
+            labels.append(method_prediction.predictions[0]['name'][0])
+
+# PCA visualization
+pca = PCA(n_components=2)
+X = np.nan_to_num(np.array(code_vectors))
+
+projected = pca.fit_transform(X)
+print(X.shape)
+print(projected.shape)
+
+colors = {'FFmpeg':'red', 'openssl':'green', 'vlc':'blue'}
+
+plt.scatter(projected[:, 0], projected[:, 1],
+            c=[colors[i] for i in labels], edgecolor='none', alpha=0.5,
+            # cmap=plt.cm.get_cmap('spectral', 10)
+            )
+plt.xlabel('component 1')
+plt.ylabel('component 2')
+# plt.legend()
+plt.colorbar()
+plt.savefig("PCA.pdf", dpi=600, bbox_inches='tight')
+plt.close()
