@@ -25,10 +25,10 @@ config = Config(set_defaults=True, load_from_args=True, verify=True)
 config.EXPORT_CODE_VECTORS = True
 model = load_model_dynamically(config)
 
-dicti = {
-    "safe": 0,
-    "vuln": 1
-}
+# dicti = {
+#     "safe": 0,
+#     "vuln": 1
+# }
 
 code_vectors = []
 labels = []
