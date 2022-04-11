@@ -1,8 +1,3 @@
-SET_NAME = "train" # "test"
-context_paths = "devign.%s.raw.txt"%SET_NAME
-json_file = "../astminer/dataset/%s.jsonl"%SET_NAME
-predictions_file = "predictions_%s.txt"%SET_NAME
-
 from interactive_predict import SHOW_TOP_CONTEXTS
 from common import common
 from code2vec import load_model_dynamically
@@ -11,7 +6,20 @@ import json
 import numpy as np
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
-import seaborn as sns; sns.set()
+import seaborn as sns
+import pandas as pd
+import pickle
+import sys
+
+SET_NAME = "wolf" #"train" 
+# if len(sys.argv) > 1:
+#     SET_NAME = sys.argv[1] 
+
+context_paths = "devign.%s.raw.txt"%SET_NAME
+json_file = "../astminer/dataset/%s.jsonl"%SET_NAME
+predictions_file = "predictions_%s.txt"%SET_NAME
+
+sns.set()
 
 config = Config(set_defaults=True, load_from_args=True, verify=True)
 config.EXPORT_CODE_VECTORS = True
@@ -62,19 +70,28 @@ with open(json_file) as sample_file, open(context_paths) as contexts_file, open(
 pca = PCA(n_components=2)
 X = np.nan_to_num(np.array(code_vectors))
 
-projected = pca.fit_transform(X)
+pca = pca.fit(X)
+if SET_NAME == "train":
+    pickle.dump(pca, open("pca.pkl","wb"))
+else:
+    pca = pickle.load(open("pca.pkl",'rb'))
+
+projected =  pca.transform(X)
 print(X.shape)
 print(projected.shape)
 
 colors = {'FFmpeg':'red', 'openssl':'green', 'vlc':'blue'}
+df = pd.DataFrame(dict(labels=labels, pca0=projected[:, 0], pca1 = projected[:, 1]))
 
-plt.scatter(projected[:, 0], projected[:, 1],
-            c=[colors[i] for i in labels], edgecolor='none', alpha=0.5,
-            # cmap=plt.cm.get_cmap('spectral', 10)
-            )
-plt.xlabel('component 1')
-plt.ylabel('component 2')
+# plt.scatter(projected[:, 0], projected[:, 1],
+#             c=[colors[i] for i in labels], edgecolor='none', alpha=0.5,
+#             # cmap=plt.cm.get_cmap('spectral', 10)
+#             )
+# plt.xlabel('component 1')
+# plt.ylabel('component 2')
 # plt.legend()
-plt.colorbar()
-plt.savefig("PCA.pdf", dpi=600, bbox_inches='tight')
+sns.scatterplot('pca0', 'pca1', data=df, hue='labels')
+plt.xlim(-7, 7)
+plt.ylim(-2.5, 7)
+plt.savefig("PCA_%s.pdf"%SET_NAME, dpi=600, bbox_inches='tight')
 plt.close()
