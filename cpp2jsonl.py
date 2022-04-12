@@ -140,7 +140,7 @@ if __name__ == '__main__':
     print(args)
     if not args.split_only:
         parse_sources(args.location, args.jsonl_location)
-    # split_dataset(args.jsonl_location, args.train_ratio, args.test_ratio)
+    split_dataset(args.jsonl_location, args.train_ratio, args.test_ratio)
 
 # dump_functions("/mnt/d/GitHub_Clones/scripts/C_Dataset/vlc/src/test/shared_data_ptr.cpp"
 #     # sys.argv[1]
