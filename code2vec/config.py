@@ -75,7 +75,7 @@ class Config:
         self.SEPARATE_OOV_AND_PAD = False
 
     def load_from_args(self):
-        args = self.arguments_parser().parse_args()
+        args, _ = self.arguments_parser().parse_known_args()
         # Automatically filled, do not edit:
         self.PREDICT = args.predict
         self.MODEL_SAVE_PATH = args.save_path

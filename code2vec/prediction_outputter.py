@@ -10,14 +10,11 @@ import seaborn as sns
 import pandas as pd
 import pickle
 import sys
+from argparse import ArgumentParser
 
 SET_NAME = "wolf" #"train" 
 # if len(sys.argv) > 1:
 #     SET_NAME = sys.argv[1] 
-
-context_paths = "devign.%s.raw.txt"%SET_NAME
-json_file = "../astminer/dataset/%s.jsonl"%SET_NAME
-predictions_file = "predictions_%s.txt"%SET_NAME
 
 sns.set()
 
@@ -25,10 +22,21 @@ config = Config(set_defaults=True, load_from_args=True, verify=True)
 config.EXPORT_CODE_VECTORS = True
 model = load_model_dynamically(config)
 
-# dicti = {
-#     "safe": 0,
-#     "vuln": 1
-# }
+arguments_parser = ArgumentParser()
+arguments_parser.add_argument('-sn', '--set-name', dest='set_name',
+                    help="name of the dataset (used in prediction_outputter only)", required=False)
+
+try:
+    args, _ = arguments_parser.parse_known_args()
+except Exception as e:
+    print(e)
+
+if "set_name" in args and args.set_name:
+    SET_NAME = args.set_name
+
+context_paths = "devign.%s.raw.txt"%SET_NAME
+json_file = "../astminer/dataset/%s.jsonl"%SET_NAME
+predictions_file = "predictions_%s.txt"%SET_NAME
 
 code_vectors = []
 labels = []
