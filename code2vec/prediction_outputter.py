@@ -72,7 +72,14 @@ with open(json_file) as sample_file, open(context_paths) as contexts_file, open(
             predictions.write(f"{method_prediction.predictions}\n")
             predictions.write(' '.join(map(str, raw_prediction.code_vector)) + '\n')
             code_vectors.append(raw_prediction.code_vector)
-            labels.append(method_prediction.predictions[0]['name'][0])
+            if not np.isnan(method_prediction.predictions[0]['probability']):
+                labels.append(method_prediction.predictions[0]['name'][0])
+            else:
+                labels.append("Unknown")
+    # count the labels of each class
+    labels_counts = np.unique(np.array(labels), return_counts=True)
+    predictions.write(str(labels_counts) + '\n')
+
 
 # PCA visualization
 pca = PCA(n_components=2)
