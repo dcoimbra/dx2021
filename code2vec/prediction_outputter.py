@@ -12,6 +12,9 @@ import pickle
 import sys
 from argparse import ArgumentParser
 
+# To Debug in VS code use in launch.json
+#             "args": ["--load", "models/devign/saved_model_iter6.release", "--set-name", "wolf"],
+
 SET_NAME = "wolf" #"train" 
 # if len(sys.argv) > 1:
 #     SET_NAME = sys.argv[1] 

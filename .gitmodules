@@ -1,0 +1,3 @@
+[submodule "ClassMap"]
+	path = ClassMap
+	url = https://github.com/Tomerg1/ClassMap.git

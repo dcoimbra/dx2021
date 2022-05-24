@@ -12,7 +12,7 @@ import com.google.gson.Gson
 import java.io.File
 
 // data class Sample (val project: String, val commit_id: String, val target: String, val func: String, val idx: String)
-data class Sample (val project: String, val file: String, val func: String)
+data class Sample (val project: String, val file: String, val func: String, val label: String)
 
 //Retrieve paths from all JavaScript files, using an Antlr parser.
 //JavaScriptMethodSplitter is used to extract individual method nodes from the compilation unit tree.
@@ -38,6 +38,15 @@ fun code2vecCMethods(split: String) {
         //     label = "vuln"
         // }
         var label = sample.project
+        // Disregard the warning "Condition 'sample.label != null' is always 'true'" - it is wrong,
+        // if label is missing it will be null and we want to use the project instead
+        @Suppress("SENSELESS_COMPARISON")
+        if (sample.label != null && sample.label != ""){
+            label = sample.label
+        }
+        // println(sample)
+        // println(label)
+        
         storage.store(
             LabeledPathContexts(
                 label,
