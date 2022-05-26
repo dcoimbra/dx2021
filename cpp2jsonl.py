@@ -61,7 +61,7 @@ def dump_functions(file_path, project, out_file_path, max_lines = max_lines, min
                 elif max_lines < 0:
                    func_lines = func_lines[max_lines:] 
                 body = "".join(func_lines)
-                body = body.encode("unicode_escape").decode("utf-8")
+                body = body.decode("utf-8").encode("unicode_escape")
                 # print(body)
                 # for line in range(function_node.extent.start.line, function_node.extent.end.line + 1):
                 #     print(lines[line - 1], end='')
@@ -104,7 +104,8 @@ def parse_sources(location, out_file_path=combined_jsonl, max_lines=max_lines, c
                     dump = False
             if dump:
                 project = root[len(location) + len(os.sep):].split(os.sep)[0]
-                dump_functions(os.path.join(root, filename), project, out_file_path, max_lines, label=label)
+                #dump_functions(os.path.join(root, filename), project, out_file_path, max_lines, label=label)
+                dump_functions(os.path.join(root, filename), project, out_file_path, max_lines)
 
 def split_dataset(combined_jsonl_path, train_ratio, test_ratio):
     # we need to read the lines counting them for each project, then split
