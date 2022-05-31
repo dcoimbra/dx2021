@@ -1,7 +1,6 @@
 #!/bin/bash
 
-
-python3 ./cpp2jsonl.py -l /home/tomerg1/git/sources/vlc/src -jl vlc.jsonl -s
+python3 ./cpp2jsonl.py -l /home/tomerg1/git/Fatal-Library/check_datasets -jl all.jsonl -s
 cp ./train.jsonl astminer/dataset/
 cp ./test.jsonl astminer/dataset/
 cp ./valid.jsonl astminer/dataset/
