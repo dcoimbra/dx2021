@@ -6,6 +6,7 @@ import os
 import argparse
 from tqdm import tqdm
 from ClassMap.classMap import mapper
+import re
 
 combined_jsonl = "all.jsonl"
 train_jsonl = "train.jsonl"
@@ -17,39 +18,99 @@ test_ratio = 0.1
 max_lines = 0
 
 
-path = "/usr/lib/llvm-10/lib/libclang.so.1"
-clang.cindex.Config.set_library_file(path)
+clang_path = "/usr/lib/llvm-10/lib/libclang.so.1"
+clang.cindex.Config.set_library_file(clang_path)
 
 def method_definitions(cursor):
     for i in cursor.walk_preorder():
+        # print(i.kind, i.extent.start.line, i.extent.end.line)
         if i.kind != clang.cindex.CursorKind.CXX_METHOD and i.kind != clang.cindex.CursorKind.FUNCTION_DECL:
             continue
         if not i.is_definition():
             continue
         yield i
 
+def srcrangestr(x):
+    return '%s:%d:%d - %s:%d:%d' % (x.start.file, x.start.line, x.start.column, x.end.file, x.end.line, x.end.column)
 
-def dump_functions(file_path, project, out_file_path, max_lines = max_lines, min_lines = 1, label = None):
+
+def get_ifdefs(file_path: str) -> list:
+    """This function extracts the ifdefs from the file
+    Clang does not have any ifdefs defined thus it skips everything under ifdef
+    Alternatively, we could remove the ifdefs, but for that we need to use the parser 
+    that will find the matching #else/#endif and I did not find a way to do it yet
+    Args:
+        file_path (_type_): _description_
+    """    
+    # index = clang.cindex.Index.create()
+    # tu = index.parse(file_path, args=['-x', 'c++'])
+    # for x in tu.cursor.get_tokens():
+    #     print (x.kind)
+    #     print ("  " + srcrangestr(x.extent))
+    #     print ("  '" + str(x.spelling) + "'")
+    res = []
+    try:
+        with open(file_path) as src:
+            for line in src.readlines(): 
+                # taking care of the simple cases
+                # single line, no conditions
+                # A proper treatment requires using a proper preprocessor
+                match = re.findall("#if defined\(([A-Za-z0-9_-]+)\)$", line)
+                if len(match):
+                    res.append(match[0])
+                else:
+                    match = re.findall("#ifdef\(([A-Za-z0-9_-]+)\)$", line)
+                    if len(match):
+                        res.append(match[0])
+    except Exception as e:
+        print(f"Failed parsing {file_path}, error {e}")
+        return res
+
+    return res
+
+def visit(node: clang.cindex.Cursor):
+    print(node.displayname + ' ' + str(node.kind) + ' ' + str(node.location))
+    for child in node.get_children():
+        visit(child)
+
+def dump_functions(file_path, project, out_file_path, max_lines = max_lines, min_lines = 1, label = None, include_dirs = None):
     # print("dump_functions", file_path, project)
     # necessary to deal with the symlinks
     file_path = os.path.realpath(file_path)
 
+    # some libraries put lots of code under if defined - include this code
+    args = []
+    expected_defines = set(get_ifdefs(file_path))
+    for define in expected_defines:
+        args.extend(["-D", define])
+
+    if include_dirs is not None:
+        for inc in include_dirs:
+            args.extend(["-I", inc])
+
+        # print(args)
+
     index = clang.cindex.Index.create()
     try:
-        tu = index.parse(file_path, options=clang.cindex.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD)
+        tu = index.parse(file_path, args=args,
+         options=clang.cindex.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD)
+        if len(tu.diagnostics):
+            print(list(tu.diagnostics)) 
     except Exception as e:
         print(f"Failed parsing {file_path}, error {e}")
         return
 
     defns = method_definitions(tu.cursor)
+    
     with open(file_path) as src:
         lines = src.readlines()
 
     file_name = file_path.split(os.sep)[-1]
     
-    with open(out_file_path, "at") as jsonl:  
+    with open(out_file_path, "at") as jsonl:
+        funcs_found = 0  
         for function_node in defns:
-            # print(dir(function_node))
+            funcs_found += 1
             if function_node.location.file.name != file_path:
                 continue
             if function_node.extent.end.line - function_node.extent.start.line > min_lines:
@@ -73,6 +134,8 @@ def dump_functions(file_path, project, out_file_path, max_lines = max_lines, min
 
                 jsonl.write(json_s)
                 jsonl.write(os.linesep)
+        #if funcs_found == 0:
+        print(f"{funcs_found} functions found in {file_path}")
 
 
 def walkdir(folder):
@@ -93,19 +156,19 @@ def parse_sources(location, out_file_path=combined_jsonl, max_lines=max_lines, c
     if class_map is not None:
         class_mapper = mapper(class_map, location)
 
-    print("Found %d files"%files_count)
+    print(f"Found {files_count} files in {location}")
     # Computing for real
     for root, filename in tqdm(walkdir(location), total=files_count):
         if filename.endswith(".cpp") or filename.endswith(".c"):
             dump = True
             if class_mapper is not None:
                 # add only mapped files
-                label = class_mapper.getFileClass(os.path.sep.join([root, filename]))
+                label, inc_dirs = class_mapper.getFileClass(os.path.sep.join([root, filename]))
                 if label.lower() == "unknown":
                     dump = False
             if dump:
                 project = root[len(location) + len(os.sep):].split(os.sep)[0]
-                dump_functions(os.path.join(root, filename), project, out_file_path, max_lines, label=label)
+                dump_functions(os.path.join(root, filename), project, out_file_path, max_lines, label=label, include_dirs=inc_dirs)
 
 
 def split_dataset(combined_jsonl_path, train_ratio, test_ratio):
@@ -153,14 +216,11 @@ def split_dataset(combined_jsonl_path, train_ratio, test_ratio):
     end = l_idx
     _write_splits()
 
-
-# Test
-# with open("/mnt/d/GitHub_Clones/scripts/C_Dataset/vlc/src/test/shared_data_ptr.cpp") as src:
-#     lines = src.readlines()
-#     body = "".join(lines[:3])
-#     body = body.encode("unicode_escape").decode("utf-8")
-#     print(body)
-
+# dump_functions(#"/mnt/d/GitHub_Clones/scripts/C_Dataset/test/check_datasets/UI/7zip/GUI/BenchmarkDialog.cpp",
+#     #"/mnt/d/GitHub_Clones/scripts/C_Dataset/test/check_datasets/Net/poco/Net/src/HTTPHeaderStream.cpp",
+#     "/mnt/d/GitHub_Clones/scripts/C_Dataset/mbedtls/library/aes.c",
+#     "mbedtls", "/tmp/a.jsonl")
+# exit(1)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
