@@ -141,7 +141,7 @@ class Code2VecExtractor(private val customLabelExtractor: LabelExtractor? = null
     private fun extract(labelExtractor: LabelExtractor) {
         val outputDir = File(outputDirName)
         for (extension in extensions) {
-            val miner = PathMiner(PathRetrievalSettings(maxPathLength, maxPathWidth))
+            val miner = PathMiner(PathRetrievalSettings(maxPathLength, maxPathWidth, 0, 1000000))
 
             val outputDirForLanguage = outputDir.resolve(extension)
             outputDirForLanguage.mkdir()

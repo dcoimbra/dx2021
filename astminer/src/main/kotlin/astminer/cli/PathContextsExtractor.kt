@@ -104,7 +104,7 @@ class PathContextsExtractor(private val customLabelExtractor: LabelExtractor? = 
     private fun extractPathContexts(labelExtractor: LabelExtractor) {
         val outputDir = File(outputDirName)
         for (extension in extensions) {
-            val miner = PathMiner(PathRetrievalSettings(maxPathLength, maxPathWidth))
+            val miner = PathMiner(PathRetrievalSettings(maxPathLength, maxPathWidth, 0, 100000000))
             val parser = getParser(extension)
             
             val outputDirForLanguage = outputDir.resolve(extension)

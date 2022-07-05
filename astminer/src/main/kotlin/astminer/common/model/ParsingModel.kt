@@ -19,7 +19,11 @@ interface Node {
         repeat(indent) { print(indentSymbol) }
         print(getTypeLabel())
         if (getToken().isNotEmpty()) {
-            println(" : ${getToken()}")
+            print(" : ${getToken()}")
+            if (getMetadata("LINE_NUMBER") != null){
+                print(" : ${getMetadata("LINE_NUMBER")}")
+            }
+            println()
         } else {
             println()
         }

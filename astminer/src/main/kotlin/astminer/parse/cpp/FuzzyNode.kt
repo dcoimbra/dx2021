@@ -52,6 +52,7 @@ class FuzzyNode(private val typeLabel: String, private val token: String?, order
     }
 
     override fun setMetadata(key: String, value: Any) {
+        println("Set Metadata on $typeLabel $token $key:$value")
         metadata[key] = value
     }
 
