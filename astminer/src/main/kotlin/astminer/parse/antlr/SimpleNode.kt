@@ -70,7 +70,7 @@ class SimpleNode(private val typeLabel: String, private var parent: Node?, priva
        children.removeIf { it.getTypeLabel() == typeLabel }
     }
 
-    override fun prettyPrint(indent: Int, indentSymbol: String) {
+    override fun prettyPrint(indent: Int, indentSymbol: String, withChildren: Boolean) {
         repeat(indent) { print(indentSymbol) }
         print(getTypeLabel())
         if (getToken().isNotEmpty()) {
@@ -78,8 +78,9 @@ class SimpleNode(private val typeLabel: String, private var parent: Node?, priva
         } else {
             println()
         }
-        println(" : ${getLocation()}")
-        getChildren().forEach { it.prettyPrint(indent + 1, indentSymbol) }
+        println(" : line ${getLocation()}")
+        if (withChildren)
+            getChildren().forEach { it.prettyPrint(indent + 1, indentSymbol, withChildren) }
     }
 
 }

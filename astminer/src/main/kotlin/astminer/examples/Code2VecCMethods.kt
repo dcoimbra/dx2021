@@ -20,51 +20,34 @@ data class Sample (val project: String, val file: String, val func: String, val 
 
 fun printPath(path: ASTPath){
     println("The path is $path")
-    println(path.topNode.prettyPrint())
+    println("upwardNodes")
+    path.upwardNodes.forEach { print("*"); it.prettyPrint(indent = 1, withChildren = false) }
+    println("topNode")
+    print("*")
+    println(path.topNode.prettyPrint(indent = 1, withChildren = false))
+    println("downwardNodes")
+    path.downwardNodes.forEach { print("*"); it.prettyPrint(indent = 1, withChildren = false) }
 }
 
-fun countLinesinStream(content: InputStream) : Long{
+fun countLinesinStream(content: InputStream) : Int{
     val reader = content.bufferedReader()
     val lines = reader.lines()
-    return lines.count();    
+    return lines.count().toInt();
 }
 
 //Retrieve paths from all JavaScript files, using an Antlr parser.
 //JavaScriptMethodSplitter is used to extract individual method nodes from the compilation unit tree.
-fun code2vecCMethods(split: String) {
+fun code2vecCMethods(split: String, window: Int, step: Int) {
     val source = "dataset/${split}.jsonl"
     val outputDir = "../code2vec"
 
     //TODO - here I want to create a sliding window over each function instead
-    val miner = PathMiner(PathRetrievalSettings(8, 3, 0, 100000000))
+//    val miner = PathMiner(PathRetrievalSettings(8, 3, 0, 100000000))
 
     val storage = Code2VecPathStorage(split, outputDir)
 
     File(source).forEachLine { line ->
         val sample = Gson().fromJson(line, Sample::class.java)
-        val fileNode = FuzzyCppParser().parseInputStream(sample.func.byteInputStream()) ?: return@forEachLine
-        println("File:" +  fileNode)
-        fileNode.preOrder().forEach { it.setNormalizedToken(separateToken(it.getToken())) }
-
-        // I want to calculate a number of sliding windows over the function
-        println("There are ${countLinesinStream(sample.func.byteInputStream())} lines in this function")
-        
-        val paths = miner.retrievePaths(fileNode)
-
-        println(paths.size.toString() + " paths: ")
-  
-        paths.forEach{
-                //println("The path is $it")
-                printPath(it)
-            }
-        
-
-        if (split == "train" && paths.isEmpty()) return@forEachLine
-
-        // var label = "safe"
-        // if (sample.target == "1") {
-        //     label = "vuln"
-        // }
         var label = sample.project
         // Disregard the warning "Condition 'sample.label != null' is always 'true'" - it is wrong,
         // if label is missing it will be null and we want to use the project instead
@@ -72,14 +55,35 @@ fun code2vecCMethods(split: String) {
         if (sample.label != null && sample.label != ""){
             label = sample.label
         }
-        // println(sample)
-        // println(label)
-        
-        storage.store(
-            LabeledPathContexts(
-                label,
-                paths.map { toPathContext(it) { node -> node.getNormalizedToken() } })
-        )
+        val fileNode = FuzzyCppParser().parseInputStream(sample.func.byteInputStream()) ?: return@forEachLine
+
+        fileNode.preOrder().forEach { it.setNormalizedToken(separateToken(it.getToken())) }
+
+        // I want to calculate a number of sliding windows over the function
+        val fileLines = countLinesinStream(sample.func.byteInputStream())
+        println("There are $fileLines lines in this function")
+
+        val winStep = if (window == 0) fileLines else step
+        for (startLine: Int in 1..fileLines - window step winStep) {
+            val endLine = if (window != 0) startLine.toInt() + window else fileLines
+            val miner = PathMiner(PathRetrievalSettings(8, 3, startLine.toInt(), endLine))
+            val paths = miner.retrievePaths(fileNode)
+
+            println(paths.size.toString() + " paths between $startLine - $endLine: ")
+
+//            paths.forEach{
+//                //println("The path is $it")
+//                printPath(it)
+//            }
+
+//            if (split == "train" && paths.isEmpty()) return@forEachLine
+            if (!paths.isEmpty())
+                storage.store(
+                    LabeledPathContexts(
+                        label,
+                        paths.map { toPathContext(it) { node -> node.getNormalizedToken() } })
+                )
+        }
     }
     storage.close()
 }

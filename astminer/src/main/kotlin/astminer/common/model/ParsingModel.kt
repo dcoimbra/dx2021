@@ -15,19 +15,20 @@ interface Node {
     fun getMetadata(key: String): Any?
     fun setMetadata(key: String, value: Any)
 
-    fun prettyPrint(indent: Int = 0, indentSymbol: String = "--") {
+    fun prettyPrint(indent: Int = 0, indentSymbol: String = "--", withChildren: Boolean = true) {
         repeat(indent) { print(indentSymbol) }
         print(getTypeLabel())
         if (getToken().isNotEmpty()) {
             print(" : ${getToken()}")
             if (getMetadata("LINE_NUMBER") != null){
-                print(" : ${getMetadata("LINE_NUMBER")}")
+                print(" : line ${getMetadata("LINE_NUMBER")}")
             }
             println()
         } else {
             println()
         }
-        getChildren().forEach { it.prettyPrint(indent + 1, indentSymbol) }
+        if (withChildren)
+            getChildren().forEach { it.prettyPrint(indent + 1, indentSymbol, withChildren) }
     }
 
     fun getChildrenOfType(typeLabel: String) = getChildren().filter { it.getTypeLabel() == typeLabel }
